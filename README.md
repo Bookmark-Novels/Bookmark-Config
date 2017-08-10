@@ -5,7 +5,8 @@ Python module for accessing Bookmark service configurations.
 ## Pipelines
 
 **Master:** ![master](https://travis-ci.org/Bookmark-Novels/Bookmark-Config.svg?branch=master)
-**dev:** ![dev](https://travis-ci.org/Bookmark-Novels/Bookmark-Config.svg?branch=dev)
+
+**Dev:** ![dev](https://travis-ci.org/Bookmark-Novels/Bookmark-Config.svg?branch=dev)
 
 ## To Contributors
 
