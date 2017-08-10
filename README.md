@@ -1,11 +1,12 @@
-# Gatekeeper
+# Bookmark Config
 
 Python module for accessing Bookmark service configurations.
 
 ## Pipelines
 
-![master](https://travis-ci.org/Bookmark-Novels/Bookmark-Config.svg?branch=master)
-![dev](https://travis-ci.org/Bookmark-Novels/Bookmark-Config.svg?branch=dev)
+**Master:** ![master](https://travis-ci.org/Bookmark-Novels/Bookmark-Config.svg?branch=master)
+
+**Dev:** ![dev](https://travis-ci.org/Bookmark-Novels/Bookmark-Config.svg?branch=dev)
 
 ## To Contributors
 
