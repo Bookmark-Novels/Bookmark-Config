@@ -51,7 +51,7 @@ class Config(object):
         for item in data:
             if item['Value'] is None:
                 continue
-                
+
             self.config[item['Key']] = item['Value'].decode('utf-8')
 
         if override_file is None:
