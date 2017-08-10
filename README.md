@@ -1,4 +1,4 @@
-# Gatekeeper
+# Bookmark Config
 
 Python module for accessing Bookmark service configurations.
 
