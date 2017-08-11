@@ -130,22 +130,6 @@ class Config(object):
                 'Unable to parse boolean from string value: {}. Valid values are true and false.'.format(value)
             )
 
-    def getJson(self, *args):
-        """Returns a configuration JSON object given a variadic list of key paths.
-
-        Returns:
-            A dictionary for the given key. None is returned if the key does
-            not exist.
-        Raises:
-            ValueError: Raised in the event that the specified key is not a valid JSON blob.
-        """
-        value = self.getString(*args)
-
-        if value is None:
-            return None
-
-        return json.loads(value)
-
     def __str__(self):
         return json.dumps(self.config)
 
