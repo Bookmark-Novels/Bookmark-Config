@@ -4,7 +4,7 @@ setup(
     name='bookmark-config',
     description='Python module for fetching configuration values for Bookmark services.',
     author='Bookmark Novels',
-    version='1.0.1',
+    version='1.0.2',
     packages=['bookmark_config'],
     url='https://github.com/Bookmark-Novels/Bookmark-Config',
     license='MIT',
