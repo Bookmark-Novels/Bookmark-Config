@@ -1,34 +1,23 @@
 import json
+from datetime import datetime
+from datetime import timedelta
 
 from consul import Consul
 
-__all__ = ['AlreadyInitializedError', 'Config']
-
-class AlreadyInitializedError(Exception):
-    """Thrown in the event that the user tries to load the config again.
-    """
-    pass
+__all__ = ['Config']
 
 class Config(object):
     """A class for fetching configuration values from Consul.
     Overrides may be specified in the form of a JSON file path.
     """
-    def __init__(self, consul_host, port=80):
-        """Constructor for a Config object.
+    def __init__(self, consul_host, root_key='', override_file=None, port=80, ttl=timedelta(hours=1)):
+        """Constructor for a Config object. Initializes the config object.
+
+        Values can be cached for a certain amount of time so that heavy users are not
+        continuously making requests to Consul. By default, values are cached for one hour.
 
         Args:
             consul_host (required): The host for the Consul KV store.
-            port (default=80): The port to use when connecting to Consul.
-        """
-        self.consul = Consul(host=consul_host, port=port)
-        self.config = None
-
-    def load(self, root_key='', override_file=None):
-        """Initializes the Config object. This method should only
-        be called once per Config. Empty key folders will be ignored during
-        the loading process.
-
-        Args:
             root_key (default=''): A string specifying the root key prefix
                                    to use when reading from Consul. By default,
                                    everything will be loaded unless this is specified.
@@ -37,22 +26,15 @@ class Config(object):
                                           override shared configuration values for
                                           development purposes. If this is None then
                                           no override will be loaded.
-        Raises:
-            AlreadyInitializedError: This is raised in the event that a user tries
-                                     to load the Config object more than once.
+            port (default=80): The port to use when connecting to Consul.
+            ttl (default=timedelta<hours=1>): The amount of time to cache config values.
+                                              This does not apply to overrides.
         """
-        if self.config is not None:
-            raise AlreadyInitializedError('This Config is already initialized.')
-
-        index, data = self.consul.kv.get(root_key, recurse=True)
-
-        self.config = {}
-
-        for item in data:
-            if item['Value'] is None:
-                continue
-
-            self.config[item['Key']] = item['Value'].decode('utf-8')
+        self.consul = Consul(host=consul_host, port=port)
+        self.overrides = {}
+        self.last_loaded = {}
+        self.cache = {}
+        self.ttl = ttl
 
         if override_file is None:
             return
@@ -61,7 +43,7 @@ class Config(object):
             lines = f.readlines()
             override_data = json.loads(''.join(lines))
             override_data = __flatten__(override_data)
-            self.config.update(override_data)
+            self.overrides.update(override_data)
 
     def getString(self, *args):
         """Returns a configuration string given a variadic list of key paths.
@@ -70,7 +52,24 @@ class Config(object):
             A string value for the given key. None is returned if the key does
             not exist.
         """
-        return self.config.get(__format_key__(args))
+        key = '/'.join(args)
+        now = datetime.utcnow()
+
+        if key in self.overrides:
+            return self.overrides.get(key)
+
+        if key in self.last_loaded:
+            if self.last_loaded[key] + self.ttl > now:
+                return self.cache.get(key)
+
+        self.last_loaded[key] = now
+
+        _, data = self.consul.kv.get(key)
+        value = data['Value'].decode('utf-8')
+
+        self.cache[key] = value
+
+        return value
 
     def getInteger(self, *args):
         """Returns a configuration integer given a variadic list of key paths.
@@ -130,16 +129,13 @@ class Config(object):
                 'Unable to parse boolean from string value: {}. Valid values are true and false.'.format(value)
             )
 
-    def __str__(self):
-        return json.dumps(self.config)
-
 def __flatten__(json_dict):
     flattened_dict = {}
 
     def flatten(key, val):
         if isinstance(val, dict):
             for k, v in val.items():
-                new_key = k if key is None else '{}.{}'.format(key, k)
+                new_key = k if key is None else '{}/{}'.format(key, k)
                 flatten(new_key, v)
         else:
             flattened_dict[key] = val
