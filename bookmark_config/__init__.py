@@ -1,6 +1,5 @@
 import json
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from consul import Consul
 
@@ -10,7 +9,7 @@ class Config(object):
     """A class for fetching configuration values from Consul.
     Overrides may be specified in the form of a JSON file path.
     """
-    def __init__(self, consul_host, root_key='', override_file=None, port=80, ttl=timedelta(hours=1)):
+    def __init__(self, consul_host, root_key=None, override_file=None, port=80, ttl=timedelta(hours=1)):
         """Constructor for a Config object. Initializes the config object.
 
         Values can be cached for a certain amount of time so that heavy users are not
@@ -35,6 +34,7 @@ class Config(object):
         self.last_loaded = {}
         self.cache = {}
         self.ttl = ttl
+        self.root_key = root_key
 
         if override_file is None:
             return
@@ -45,7 +45,7 @@ class Config(object):
             override_data = __flatten__(override_data)
             self.overrides.update(override_data)
 
-    def getString(self, *args):
+    def get_string(self, *args):
         """Returns a configuration string given a variadic list of key paths.
 
         Returns:
@@ -53,6 +53,10 @@ class Config(object):
             not exist.
         """
         key = '/'.join(args)
+
+        if self.root_key is not None:
+            key = '{}/{}'.format(self.root_key, key)
+
         now = datetime.utcnow()
 
         if key in self.overrides:
@@ -65,13 +69,17 @@ class Config(object):
         self.last_loaded[key] = now
 
         _, data = self.consul.kv.get(key)
-        value = data['Value'].decode('utf-8')
+
+        if data is not None and 'Value' in data:
+            value = data['Value'].decode('utf-8')
+        else:
+            value = None
 
         self.cache[key] = value
 
         return value
 
-    def getInteger(self, *args):
+    def get_integer(self, *args):
         """Returns a configuration integer given a variadic list of key paths.
 
         Returns:
@@ -80,14 +88,14 @@ class Config(object):
         Raises:
             ValueError: Raised in the event that the specified key is not an integer.
         """
-        value = self.getString(*args)
+        value = self.get_string(*args)
 
         if value is None:
             return None
 
         return int(value)
 
-    def getFloat(self, *args):
+    def get_float(self, *args):
         """Returns a configuration float given a variadic list of key paths.
 
         Returns:
@@ -96,14 +104,14 @@ class Config(object):
         Raises:
             ValueError: Raised in the event that the specified key is not a float.
         """
-        value = self.getString(*args)
+        value = self.get_string(*args)
 
         if value is None:
             return None
 
         return float(value)
 
-    def getBoolean(self, *args):
+    def get_boolean(self, *args):
         """Returns a configuration integer given a variadic list of key paths.
 
         Booleans are defined to be either "true" or "false" in either uppercase,
@@ -115,7 +123,7 @@ class Config(object):
         Raises:
             ValueError: Raised in the event that the specified key is not a boolean.
         """
-        value = self.getString(*args)
+        value = self.get_string(*args)
 
         if value is None:
             return None
