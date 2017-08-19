@@ -9,7 +9,7 @@ class Config(object):
     """A class for fetching configuration values from Consul.
     Overrides may be specified in the form of a JSON file path.
     """
-    def __init__(self, consul_host, root_key=None, override_file=None, port=80, ttl=timedelta(hours=1)):
+    def __init__(self, consul_host, token, root_key=None, override_file=None, port=80, ttl=timedelta(hours=1)):
         """Constructor for a Config object. Initializes the config object.
 
         Values can be cached for a certain amount of time so that heavy users are not
@@ -26,10 +26,11 @@ class Config(object):
                                           development purposes. If this is None then
                                           no override will be loaded.
             port (default=80): The port to use when connecting to Consul.
+            token: The Consul token to use when connecting to Consul.
             ttl (default=timedelta<hours=1>): The amount of time to cache config values.
                                               This does not apply to overrides.
         """
-        self.consul = Consul(host=consul_host, port=port)
+        self.consul = Consul(host=consul_host, port=port, token=token)
         self.overrides = {}
         self.last_loaded = {}
         self.cache = {}
